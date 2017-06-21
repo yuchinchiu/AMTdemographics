@@ -4,3 +4,5 @@
 *.Ruserdata
 *.Rda
 *.csv
+submissionData/*.txt
+.Rproj.user
