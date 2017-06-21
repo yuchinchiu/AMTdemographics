@@ -1,0 +1,94 @@
+---
+title: "Cross Referencing worker data"
+author: "Yu-Chin Chiu"
+date: "June 21, 2017"
+output: md_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 6, fig.height = 4, fig.path = '/figure/',
+                      include = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(lubridate)  # to deal with date/time, e.g. date(), ymd(), as_date(), etc
+library(zoo)
+rm(list=ls())
+# include = TRUE to include both codes and results
+# echo = FALSE will mute the R codes, and display results
+```
+
+#### Extract workerId from submissionData
+```{r mastersheet}
+master <- read_csv('masterDemographics.csv', col_names = TRUE)
+colnames(master) <-  c("Timestamp", "workerId", "Gender", "Age", "Ethnicity", "Race", "Study")
+
+master$entryDate <- date(parse_datetime(master$Timestamp, format = "%m/%d/%Y %H:%M"))
+master$year   <- year(parse_datetime(master$Timestamp, format = "%m/%d/%Y %H:%M"))
+master$month  <- month(parse_datetime(master$Timestamp, format = "%m/%d/%Y %H:%M"))
+master$day    <- day(parse_datetime(master$Timestamp, format = "%m/%d/%Y %H:%M"))
+master$YM     <-as.yearmon(master$entryDate)
+
+master %>% ggplot(mapping = aes(x = year)) + geom_bar()
+master %>% ggplot(mapping = aes(x = year)) + geom_bar(mapping = aes(fill = Gender)) 
+master %>%
+  filter(Gender!="Do not wish to reply") %>%
+  group_by(YM, Gender) %>%
+  summarise(cnt = n()) %>%
+  ggplot(mapping = aes(x = YM, y = cnt, color=Gender)) + 
+        geom_point() + geom_line() + scale_x_continuous()
+
+```
+
+#### Extract workerId from submissionData
+```{r submissionData}
+fileList <- dir('submissionData', "*.txt", full.names = TRUE)
+
+workerIdList <-  tibble(workerId = character(), dataDate =ymd())
+  #tribble(~workerId, ~dataDate)
+
+
+# This also works: workerIdList <-  tibble(workerId = character())
+
+for (f in 1:length(fileList)){
+  
+  data <- read_delim(fileList[f], delim = ":", col_names = FALSE)
+  newworkerId <- data[[which(data[1]=="workerId"),2]]
+  if(!newworkerId=="" & !is.na(newworkerId)){
+    workerIdList <- add_row(workerIdList, workerId = newworkerId, 
+                            dataDate = file.info(fileList[f])$mtime) 
+    # use the mtime (modification datetime) bc ctime will be the time file is copied to the new location
+  }
+}
+
+```
+
+
+
+```{r CFworker}
+NrS <-dim(workerIdList)[1]
+
+workerIdList$Gender      <- NA
+workerIdList$Age         <- NA
+workerIdList$Race        <- NA
+workerIdList$Ethnicity   <- NA
+
+cnt <- 0
+for (S in 1:NrS){
+  
+  wk <-workerIdList$workerId[[S]]
+  ridx <- which(master$workerId %in% wk)
+ 
+  
+  
+  if (length(ridx) > 0){
+    latestRecord <- ridx[length(ridx)]
+    workerIdList$Gender[[S]]    <- master$Gender[[latestRecord]]
+    workerIdList$Age[[S]]       <- master$Age[[latestRecord]]
+    workerIdList$Race[[S]]      <- master$Race[[latestRecord]]
+    workerIdList$Ethnicity[[S]] <- master$Ethnicity[[latestRecord]]
+  }
+  else{
+  }
+
+}
+```
+
