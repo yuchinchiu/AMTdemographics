@@ -33,20 +33,16 @@ master %>%
   filter(Gender!="Do not wish to reply") %>%
   group_by(YM, Gender) %>%
   summarise(cnt = n()) %>%
-  ggplot(mapping = aes(x = YM, y = cnt, color=Gender)) + 
-        geom_point() + geom_line() + scale_x_continuous()
+  ggplot(mapping = aes(x = YM, y = cnt, color=Gender)) + geom_point() + geom_line() + scale_x_continuous()
 
 ```
 
-#### Extract workerId from submissionData
+#### Extract workerId from subjects who has submitted data to our server (txt/log)
 ```{r submissionData}
 fileList <- dir('submissionData', "*.txt", full.names = TRUE)
 
 workerIdList <-  tibble(workerId = character(), dataDate =ymd())
-  #tribble(~workerId, ~dataDate)
 
-
-# This also works: workerIdList <-  tibble(workerId = character())
 
 for (f in 1:length(fileList)){
   
@@ -62,7 +58,7 @@ for (f in 1:length(fileList)){
 ```
 
 
-
+#### Find demographic information from subjects
 ```{r CFworker}
 NrS <-dim(workerIdList)[1]
 
